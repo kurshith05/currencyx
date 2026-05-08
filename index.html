@@ -77,6 +77,8 @@ header{display:flex;align-items:center;justify-content:space-between;padding:32p
 
 .fields-grid{display:grid;grid-template-columns:minmax(0,1fr) 50px minmax(0,1fr);gap:12px;align-items:end;margin-bottom:20px;}
 .field-label{font-family:var(--font-mono);font-size:10px;letter-spacing:2px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;}
+
+/* FROM field: amount input + currency select side by side */
 .field-inner{background:var(--surface);border:1px solid var(--border2);border-radius:14px;overflow:hidden;display:flex;min-width:0;}
 .field-inner input{flex:1;min-width:0;width:0;background:none;border:none;outline:none;padding:18px 14px;color:var(--text);font-size:22px;font-family:var(--font-mono);}
 .field-inner select{
@@ -92,8 +94,16 @@ header{display:flex;align-items:center;justify-content:space-between;padding:32p
   font-size:13px;
   font-family:var(--font-mono);
   cursor:pointer;
+  position:relative;
+  z-index:10;
+  pointer-events:all;
+  -webkit-appearance:auto;
+  appearance:auto;
 }
 .field-inner select option{background:var(--select-bg);color:var(--select-text);}
+.field-inner input[readonly]{pointer-events:none;}
+
+
 
 .swap-btn{width:44px;height:44px;border-radius:12px;border:1px solid var(--border2);background:var(--card2);color:var(--muted2);cursor:pointer;transition:.25s;display:flex;align-items:center;justify-content:center;font-size:20px;}
 .swap-btn:hover{background:var(--accent);color:#07080d;transform:rotate(180deg);}
@@ -130,6 +140,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:32p
 
 @media(max-width:700px){
   .fields-grid{grid-template-columns:1fr;}
+  .fields-grid .swap-btn-wrap{display:flex;justify-content:center;}
   .stats-row{flex-direction:column;}
   .rate-table-head,.rate-row{grid-template-columns:2fr 1fr 2fr;}
   .rate-table-head span:last-child,.rate-row div:last-child{display:none;}
@@ -166,6 +177,8 @@ header{display:flex;align-items:center;justify-content:space-between;padding:32p
   <div class="converter">
     <div class="conv-label">// Currency Converter</div>
     <div class="fields-grid">
+
+      <!-- FROM: amount + currency select -->
       <div>
         <div class="field-label">From</div>
         <div class="field-inner">
@@ -173,9 +186,13 @@ header{display:flex;align-items:center;justify-content:space-between;padding:32p
           <select id="from-cur"></select>
         </div>
       </div>
+
+      <!-- SWAP button -->
       <div style="display:flex;justify-content:center;">
         <button class="swap-btn" id="swap-btn" aria-label="Swap currencies">⇄</button>
       </div>
+
+      <!-- TO: same structure as FROM — result input + currency select side by side -->
       <div>
         <div class="field-label">To</div>
         <div class="field-inner">
@@ -183,6 +200,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:32p
           <select id="to-cur"></select>
         </div>
       </div>
+
     </div>
     <button class="convert-btn" id="convert-btn"><span id="btn-label">Convert Now</span></button>
     <div class="error-box" id="error-box">Could not fetch exchange rates. Please try again.</div>
@@ -324,9 +342,19 @@ async function doConvert(){
   renderTable(rates,from);
 }
 
+// FROM currency change → reload table + reconvert
 fromSel.addEventListener('change',()=>{
   clearTimeout(debounceTimer);
-  debounceTimer=setTimeout(()=>loadTableForBase(fromSel.value),200);
+  debounceTimer=setTimeout(()=>{
+    loadTableForBase(fromSel.value);
+    doConvert();
+  },200);
+});
+
+// ✅ FIX: TO currency change → immediately reconvert with new target
+toSel.addEventListener('change',()=>{
+  clearTimeout(debounceTimer);
+  debounceTimer=setTimeout(()=>doConvert(),150);
 });
 
 document.getElementById('amount').addEventListener('input',()=>{
